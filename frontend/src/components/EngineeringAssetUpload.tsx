@@ -64,7 +64,7 @@ export function EngineeringAssetUpload({ onUploadComplete }: EngineeringAssetUpl
         <div className="max-w-4xl mx-auto">
           {/* Upload Area */}
           {!uploaded && !processing && (
-            <div className="glass-card rounded-2xl p-12 text-center border-2 border-dashed border-white/10 hover:border-orange-500/30 transition-all">
+            <div className="glass-card rounded-2xl p-12 text-center border-2 border-dashed border-white/10 hover:border-orange-500/30 transition-all animate-fade-in-up">
               <div className="flex justify-center mb-6">
                 <div className="p-6 bg-gradient-to-br from-orange-500/20 to-blue-500/20 rounded-2xl">
                   <Upload className="w-12 h-12 text-orange-400" />

@@ -1,12 +1,21 @@
+import { useState, useEffect } from 'react';
 import { AlloyLogo } from './AlloyLogo';
 import { LocusLogo } from './LocusLogo';
-import referenceImage from 'figma:asset/4d0b85bea3a1bc6334723b836a09504a05d067f4.png';
 
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 export function LandingPage({ onGetStarted }: LandingPageProps) {
+  const [isAnimating, setIsAnimating] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAnimating(false);
+    }, 1000); // Animation duration
+
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <div className="min-h-screen bg-[#0a0b14] text-white overflow-x-hidden flex flex-col">
       {/* Navigation */}
@@ -18,12 +27,23 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           <span className="text-2xl">Alloy</span>
         </div>
 
-        <button 
-          onClick={onGetStarted}
-          className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-orange-500/50 transition-all text-sm backdrop-blur-sm"
-        >
-          Get Started
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              window.location.href = window.location.origin + window.location.pathname + '?test=sourcing';
+            }}
+            className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 transition-all text-sm backdrop-blur-sm text-blue-400"
+            title="Skip to sourcing page for testing"
+          >
+            Test Mode
+          </button>
+          <button
+            onClick={onGetStarted}
+            className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-orange-500/50 transition-all text-sm backdrop-blur-sm"
+          >
+            Get Started
+          </button>
+        </div>
       </nav>
 
       {/* Hero Section */}
@@ -32,43 +52,45 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="relative z-10 text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-sm">
+        <div className="relative z-10 text-center mb-10 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-sm animate-fade-in">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-sm text-gray-300">Autonomous Procurement</span>
           </div>
 
-          <h1 className="text-5xl md:text-6xl mb-4 leading-tight">
+          <h1 className="text-5xl md:text-6xl mb-4 leading-tight animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
             Autonomous Sourcing and Payments
             <br />
             for Engineering Teams.
           </h1>
 
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
             Specify what you need. Alloy finds vendors, evaluates options, and executes payments safely.
           </p>
         </div>
 
         {/* 3D Card Mockups */}
-        <div className="relative z-10 flex items-center justify-center gap-8 mb-12 perspective-1000">
+        <div className="relative z-10 flex items-center justify-center gap-8 mb-12" style={{ perspective: '1000px' }}>
           {/* Left Card */}
-          <div 
-            className="relative w-80 h-52 rounded-2xl overflow-hidden transform -rotate-6 hover:rotate-0 transition-all duration-500"
+          <div
+            className={`relative w-80 h-52 rounded-2xl overflow-hidden transform -rotate-6 hover:rotate-0 transition-all duration-500 ${
+              isAnimating ? 'card-enter-animation' : ''
+            }`}
             style={{
               background: 'linear-gradient(135deg, rgba(255, 107, 74, 0.15) 0%, rgba(91, 155, 255, 0.15) 100%)',
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 20px 60px rgba(255, 107, 74, 0.3), inset 0 0 80px rgba(255, 107, 74, 0.05)'
+              boxShadow: '0 20px 60px rgba(255, 107, 74, 0.3), inset 0 0 80px rgba(255, 107, 74, 0.05)',
             }}
           >
             {/* Orange Glow */}
             <div className="absolute top-1/2 left-0 w-40 h-40 bg-orange-500/40 rounded-full blur-[60px]" />
-            
+
             {/* Glass gradient overlay */}
             <div className="absolute inset-0" style={{
               background: 'linear-gradient(135deg, rgba(255, 107, 74, 0.2) 0%, rgba(91, 155, 255, 0.1) 100%)'
             }} />
-            
+
             {/* Abstract circles */}
             <div className="absolute top-8 right-8 w-32 h-32 rounded-full border-2 border-white/20" />
             <div className="absolute top-12 right-12 w-24 h-24 rounded-full bg-white/5 backdrop-blur-sm" />
@@ -80,12 +102,12 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 </div>
                 <span className="text-sm">Alloy</span>
               </div>
-              
+
               <div className="mb-2">
                 <p className="text-xs text-gray-400">Active Procurement</p>
                 <p className="text-3xl mt-1">$86,320.25 USDC</p>
               </div>
-              
+
               <div className="flex gap-4 text-xs">
                 <span className="text-green-400">USDT 40.50%</span>
                 <span className="text-blue-400">USDC 59.48%</span>
@@ -105,8 +127,10 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           </div>
 
           {/* Right Card */}
-          <div 
-            className="relative w-80 h-52 rounded-2xl overflow-hidden transform rotate-6 hover:rotate-0 transition-all duration-500"
+          <div
+            className={`relative w-80 h-52 rounded-2xl overflow-hidden transform rotate-6 hover:rotate-0 transition-all duration-500 ${
+              isAnimating ? 'card-enter-animation' : ''
+            }`}
             style={{
               background: 'linear-gradient(135deg, rgba(91, 155, 255, 0.15) 0%, rgba(255, 107, 74, 0.15) 100%)',
               backdropFilter: 'blur(20px)',
@@ -116,12 +140,12 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           >
             {/* Blue Glow */}
             <div className="absolute top-1/2 right-0 w-40 h-40 bg-blue-500/40 rounded-full blur-[60px]" />
-            
+
             {/* Glass gradient overlay */}
             <div className="absolute inset-0" style={{
               background: 'linear-gradient(135deg, rgba(91, 155, 255, 0.2) 0%, rgba(255, 107, 74, 0.1) 100%)'
             }} />
-            
+
             {/* Abstract circles */}
             <div className="absolute top-8 right-8 w-32 h-32 rounded-full border-2 border-white/20" />
             <div className="absolute top-12 right-12 w-24 h-24 rounded-full bg-white/5 backdrop-blur-sm" />
@@ -133,12 +157,12 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 </div>
                 <span className="text-sm">Alloy</span>
               </div>
-              
+
               <div className="mb-2">
                 <p className="text-xs text-gray-400">Total Balance</p>
                 <p className="text-3xl mt-1">$74,125.76 USDC</p>
               </div>
-              
+
               <div className="flex gap-4 text-xs">
                 <span className="text-green-400">USDT 45.32%</span>
                 <span className="text-blue-400">USDC 69.48%</span>

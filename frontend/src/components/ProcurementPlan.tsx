@@ -12,9 +12,28 @@ interface ProcurementPlanProps {
   plan: ProcurementItem[];
   setPlan: (plan: ProcurementItem[]) => void;
   onApprove: () => void;
+  sourcingData?: {
+    componentSearches: Array<{
+      componentName: string;
+      vendors: Array<{
+        name: string;
+        reliability: number;
+        qualityScore: number;
+        leadTime: number;
+        pricePerUnit: number;
+        walletAddress?: string;
+        email?: string;
+      }>;
+    }>;
+    insights?: {
+      costSavings?: number;
+      leadTimeOptimization?: number;
+      vendorRisks: 'Low' | 'Medium' | 'High';
+    };
+  };
 }
 
-export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanProps) {
+export function ProcurementPlan({ plan, setPlan, onApprove, sourcingData }: ProcurementPlanProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showPOPreview, setShowPOPreview] = useState(false);
 
@@ -52,7 +71,31 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
 
   const totalCost = plan.reduce((sum, item) => sum + item.totalCost, 0);
   const totalItems = plan.reduce((sum, item) => sum + item.quantity, 0);
-  const avgLeadTime = Math.round(plan.reduce((sum, item) => sum + item.leadTime, 0) / plan.length);
+  const avgLeadTime = plan.length > 0 ? Math.round(plan.reduce((sum, item) => sum + item.leadTime, 0) / plan.length) : 0;
+
+  // Get vendor data from sourcingData
+  const getVendorData = (vendorName: string) => {
+    if (!sourcingData) return null;
+    for (const search of sourcingData.componentSearches) {
+      const vendor = search.vendors.find(v => v.name === vendorName);
+      if (vendor) return vendor;
+    }
+    return null;
+  };
+
+  // Calculate insights from real data
+  const bestPriceVendor = plan.length > 0
+    ? plan.reduce((best, item) => item.pricePerUnit < best.pricePerUnit ? item : best, plan[0])
+    : null;
+  const fastestVendor = plan.length > 0
+    ? plan.reduce((fastest, item) => item.leadTime < fastest.leadTime ? item : fastest, plan[0])
+    : null;
+  const lowestRiskVendor = sourcingData?.componentSearches
+    ?.flatMap(s => s.vendors)
+    .reduce((best, vendor) => {
+      if (!best) return vendor;
+      return vendor.reliability > best.reliability ? vendor : best;
+    }, undefined as typeof sourcingData.componentSearches[0]['vendors'][0] | undefined);
 
   return (
     <div className="h-screen overflow-y-auto bg-[#0a0b14] relative">
@@ -67,7 +110,7 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
             <p className="text-xs text-gray-400 mb-1 tracking-wider uppercase">Procurement Management</p>
             <h2 className="text-xl text-white font-light">Review and modify your procurement plan</h2>
           </div>
-          <Button 
+          <Button
             onClick={onApprove}
             className="gradient-button px-8"
           >
@@ -79,7 +122,7 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
       <div className="px-8 py-8 relative z-10">
         <div className="max-w-7xl mx-auto">
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-8 animate-stagger">
             <div className="glass-card rounded-xl p-6 shadow-lg relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
               <div className="flex items-center gap-3 mb-3 relative z-10">
@@ -130,56 +173,67 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
           </div>
 
           {/* Risk & Optimization Insights */}
-          <div className="glass-card rounded-xl p-6 shadow-2xl mb-8">
+          <div className="glass-card rounded-xl p-6 shadow-2xl mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
             <div className="flex items-center gap-3 mb-5">
               <Zap className="w-5 h-5 text-yellow-400" />
               <h3 className="text-lg text-white">Risk & Optimization Insights</h3>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-green-400">Best Price</span>
+              {bestPriceVendor && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-green-400">Best Price</span>
+                  </div>
+                  <p className="text-white/90">{bestPriceVendor.vendor}</p>
+                  <p className="text-xs text-gray-400 mt-1">${bestPriceVendor.pricePerUnit.toFixed(2)}/unit</p>
                 </div>
-                <p className="text-white/90">Acme Motors Inc.</p>
-                <p className="text-xs text-gray-400 mt-1">Saves $127 vs alternatives</p>
-              </div>
+              )}
 
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-blue-400">Fastest Delivery</span>
+              {fastestVendor && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm text-blue-400">Fastest Delivery</span>
+                  </div>
+                  <p className="text-white/90">{fastestVendor.vendor}</p>
+                  <p className="text-xs text-gray-400 mt-1">{fastestVendor.leadTime}-day lead time</p>
                 </div>
-                <p className="text-white/90">TechParts Supply</p>
-                <p className="text-xs text-gray-400 mt-1">3-day lead time</p>
-              </div>
+              )}
 
-              <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm text-purple-400">Lowest Risk</span>
+              {lowestRiskVendor && (
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm text-purple-400">Lowest Risk</span>
+                  </div>
+                  <p className="text-white/90">{lowestRiskVendor.name}</p>
+                  <p className="text-xs text-gray-400 mt-1">{lowestRiskVendor.reliability}% reliability score</p>
                 </div>
-                <p className="text-white/90">Global Components</p>
-                <p className="text-xs text-gray-400 mt-1">99% reliability score</p>
-              </div>
+              )}
             </div>
 
-            <div className="mt-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-yellow-400 font-medium">Optimization Opportunity</p>
-                  <p className="text-sm text-white/80 mt-1">
-                    Consolidating orders with Acme Motors Inc. could reduce shipping costs by $28. 
-                    Consider bundling NEMA17 motors with mounting brackets.
-                  </p>
+            {sourcingData?.insights && (
+              <div className="mt-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-yellow-400 font-medium">
+                      {sourcingData.insights.costSavings ? 'Optimization Opportunity' : 'Risk Assessment'}
+                    </p>
+                    <p className="text-sm text-white/80 mt-1">
+                      {sourcingData.insights.costSavings && `Potential cost savings: $${sourcingData.insights.costSavings.toFixed(2)}. `}
+                      {sourcingData.insights.leadTimeOptimization && `Lead time optimization: ${sourcingData.insights.leadTimeOptimization} days faster. `}
+                      Vendor risk level: {sourcingData.insights.vendorRisks}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Vendor Verification Panel */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-8 animate-stagger">
             {Array.from(new Set(plan.map(item => item.vendor))).map((vendor) => (
               <div key={vendor} className="glass-card rounded-xl p-5 shadow-lg">
                 <div className="flex items-center justify-between mb-4">
@@ -189,28 +243,55 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
                     Verified
                   </span>
                 </div>
-                
+
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Locus Whitelist</span>
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Reliability Score</span>
-                    <span className="text-sm text-blue-400">98%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Past Orders</span>
-                    <span className="text-sm text-white/80">24</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Shipping Origin</span>
-                    <span className="text-sm text-white/80">USA</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Wallet</span>
-                    <span className="text-xs font-mono text-gray-500">0x8b4f...2a1d</span>
-                  </div>
+                  {(() => {
+                    const vendorData = getVendorData(vendor);
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400">Locus Whitelist</span>
+                          {vendorData?.locusWhitelist ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <span className="text-xs text-gray-500">Not whitelisted</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400">Reliability Score</span>
+                          <span className="text-sm text-blue-400">
+                            {vendorData?.reliability ? `${vendorData.reliability}%` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400">Quality Score</span>
+                          <span className="text-sm text-white/80">
+                            {vendorData?.qualityScore ? `${vendorData.qualityScore}%` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400">Lead Time</span>
+                          <span className="text-sm text-white/80">
+                            {vendorData?.leadTime ? `${vendorData.leadTime} days` : 'N/A'}
+                          </span>
+                        </div>
+                        {vendorData?.walletAddress && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-400">Wallet</span>
+                            <span className="text-xs font-mono text-gray-500">
+                              {vendorData.walletAddress.substring(0, 6)}...{vendorData.walletAddress.substring(vendorData.walletAddress.length - 4)}
+                            </span>
+                          </div>
+                        )}
+                        {vendorData?.email && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-400">Email</span>
+                            <span className="text-xs text-gray-500">{vendorData.email}</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-white/10">
@@ -236,7 +317,7 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
           </div>
 
           {/* Plan Table */}
-          <div className="glass-card rounded-xl overflow-hidden shadow-2xl mb-8">
+          <div className="glass-card rounded-xl overflow-hidden shadow-2xl mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-white/5 border-b border-white/10">
@@ -253,7 +334,7 @@ export function ProcurementPlan({ plan, setPlan, onApprove }: ProcurementPlanPro
                 <tbody>
                   {plan.map((item, index) => (
                     <Fragment key={item.id}>
-                      <tr 
+                      <tr
                         className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
                           index === plan.length - 1 ? 'border-b-0' : ''
                         }`}

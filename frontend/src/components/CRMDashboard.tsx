@@ -18,8 +18,8 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
   // Calculate metrics
   const totalSpend = orders.reduce((sum, order) => sum + order.amount, 0);
   const avgOrderSize = orders.length > 0 ? totalSpend / orders.length : 0;
-  const successRate = orders.length > 0 
-    ? (orders.filter(o => o.status === 'completed').length / orders.length) * 100 
+  const successRate = orders.length > 0
+    ? (orders.filter(o => o.status === 'completed').length / orders.length) * 100
     : 0;
 
   // Mock vendor data
@@ -48,7 +48,7 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
     { name: 'Others', value: 875, color: '#10b981' },
   ];
 
-  const filteredOrders = orders.filter(order => 
+  const filteredOrders = orders.filter(order =>
     order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.vendor.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -58,15 +58,15 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
       {/* Ambient background glow */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/8 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/8 rounded-full blur-[120px] pointer-events-none" />
-      
+
       <div className="relative z-10 glass-card-blue border-b border-white/5 px-8 py-6">
         <p className="text-xs text-gray-400 mb-1 tracking-wider uppercase">Insights & Analytics</p>
         <h2 className="text-xl text-white font-light">CRM Dashboard</h2>
       </div>
 
-      <div className="px-8 py-6 relative z-10">
+      <div className="px-8 py-6 relative z-10 animate-fade-in">
         {/* Metrics Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8 animate-stagger">
           <div className="glass-card rounded-xl p-6 shadow-lg relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
             <div className="flex items-center gap-3 mb-2 relative z-10">
@@ -163,7 +163,7 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
                   </thead>
                   <tbody>
                     {filteredOrders.map((order, index) => (
-                      <tr 
+                      <tr
                         key={order.id}
                         className={`border-b border-[#2a2b36] hover:bg-[#1f2029] transition-colors ${
                           index === filteredOrders.length - 1 ? 'border-b-0' : ''
@@ -227,7 +227,7 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
                       <p className="text-xl text-[#ff6b4a]">${vendor.totalSpend.toFixed(2)}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#2a2b36]">
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Orders</p>
@@ -281,9 +281,9 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
                     <CartesianGrid strokeDasharray="3 3" stroke="#2a2b36" />
                     <XAxis dataKey="month" stroke="#6b7280" />
                     <YAxis stroke="#6b7280" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1a1b26', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1a1b26',
                         border: '1px solid #2a2b36',
                         borderRadius: '8px'
                       }}
@@ -312,9 +312,9 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1a1b26', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1a1b26',
                           border: '1px solid #2a2b36',
                           borderRadius: '8px'
                         }}
@@ -325,8 +325,8 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
                     {vendorDistribution.map((item) => (
                       <div key={item.name} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
+                          <div
+                            className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: item.color }}
                           />
                           <span>{item.name}</span>
@@ -350,9 +350,9 @@ export function CRMDashboard({ orders }: CRMDashboardProps) {
                       <CartesianGrid strokeDasharray="3 3" stroke="#2a2b36" />
                       <XAxis dataKey="category" stroke="#6b7280" />
                       <YAxis stroke="#6b7280" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1a1b26', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1a1b26',
                           border: '1px solid #2a2b36',
                           borderRadius: '8px'
                         }}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EngineeringAssetUpload } from './components/EngineeringAssetUpload';
 import { PrioritiesChat } from './components/PrioritiesChat';
 import { SourcingPipeline } from './components/SourcingPipeline';
@@ -8,6 +8,7 @@ import { ApprovalExecution } from './components/ApprovalExecution';
 import { CRMDashboard } from './components/CRMDashboard';
 import { Sidebar } from './components/Sidebar';
 import { LandingPage } from './components/LandingPage';
+import type { VendorSourcingResponse } from './lib/api';
 
 export type Screen = 'landing' | 'upload' | 'priorities' | 'sourcing' | 'rfq' | 'procurement' | 'approval' | 'crm';
 
@@ -83,6 +84,10 @@ function App() {
   const [procurementPlan, setProcurementPlan] = useState<ProcurementItem[]>([]);
   const [extractedComponents, setExtractedComponents] = useState<ExtractedComponent[]>([]);
   const [bomEstimate, setBomEstimate] = useState<BOMEstimate | null>(null);
+  const [priorities, setPriorities] = useState<{ quality: boolean; speed: boolean; cost: boolean } | null>(null);
+  const [spendingLimit, setSpendingLimit] = useState<number>(0);
+  const [selectedVendors, setSelectedVendors] = useState<Record<string, string>>({});
+  const [sourcingData, setSourcingData] = useState<VendorSourcingResponse | null>(null);
   const [orders, setOrders] = useState<Order[]>([
     {
       id: 'ORD-001',
@@ -140,43 +145,42 @@ function App() {
   ]);
 
   const handlePlanGenerated = () => {
-    // Generate mock procurement plan
-    const mockPlan: ProcurementItem[] = [
-      {
-        id: '1',
-        partName: 'NEMA17 Stepper Motor',
-        quantity: 50,
-        specifications: 'Bipolar, 1.8° step angle, ≥45 N·cm holding torque',
-        vendor: 'Acme Motors Inc.',
-        alternativeVendors: ['TechParts Supply', 'Global Components'],
-        pricePerUnit: 85.00,
-        leadTime: 5,
-        totalCost: 4250.00,
-      },
-      {
-        id: '2',
-        partName: 'Motor Mounting Brackets',
-        quantity: 50,
-        specifications: 'Aluminum, NEMA17 compatible',
-        vendor: 'TechParts Supply',
-        alternativeVendors: ['Acme Motors Inc.', 'PowerTech Solutions'],
-        pricePerUnit: 12.00,
-        leadTime: 3,
-        totalCost: 600.00,
-      },
-      {
-        id: '3',
-        partName: 'Wiring Harness',
-        quantity: 50,
-        specifications: '4-wire, 1m length, JST connector',
-        vendor: 'CableWorks Inc.',
-        alternativeVendors: ['TechParts Supply'],
-        pricePerUnit: 3.50,
-        leadTime: 7,
-        totalCost: 175.00,
-      },
-    ];
-    setProcurementPlan(mockPlan);
+    // Generate procurement plan from actual RFQ data
+    if (!sourcingData || !selectedVendors || extractedComponents.length === 0) {
+      console.error('Missing data for procurement plan');
+      return;
+    }
+
+    const plan: ProcurementItem[] = sourcingData.componentSearches
+      .filter(search => selectedVendors[search.componentName])
+      .map((search, index) => {
+        const component = extractedComponents.find(c => c.name === search.componentName);
+        const vendor = search.vendors.find(v => v.name === selectedVendors[search.componentName]);
+
+        if (!component || !vendor) return null;
+
+        // Get alternative vendors (all other vendors for this component)
+        const alternativeVendors = search.vendors
+          .filter(v => v.name !== vendor.name)
+          .map(v => v.name);
+
+        const quantity = parseInt(search.quantity.toString()) || 1;
+
+        return {
+          id: `item-${index + 1}`,
+          partName: search.componentName,
+          quantity,
+          specifications: component.specifications,
+          vendor: vendor.name,
+          alternativeVendors,
+          pricePerUnit: vendor.pricePerUnit,
+          leadTime: vendor.leadTime,
+          totalCost: (vendor.pricePerUnit * quantity) + vendor.shipping,
+        };
+      })
+      .filter((item): item is ProcurementItem => item !== null);
+
+    setProcurementPlan(plan);
     setCurrentScreen('procurement');
   };
 
@@ -198,6 +202,21 @@ function App() {
     setOrders([newOrder, ...orders]);
     setTimeout(() => setCurrentScreen('crm'), 1500);
   };
+
+  // Check for test mode (skip to sourcing)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('test') === 'sourcing') {
+      // Set up test data
+      setExtractedComponents([
+        { name: 'NEMA23 Stepper Motor', quantity: '3', specifications: '425 oz-in torque, 3.0 A, 56 mm frame' },
+        { name: '6061-T6 Aluminum Plate', quantity: '1', specifications: '500×400×10 mm, precision cut' },
+      ]);
+      setSpendingLimit(2500);
+      setPriorities({ quality: false, speed: false, cost: true });
+      setCurrentScreen('sourcing');
+    }
+  }, []); // Only run once on mount
 
   return (
     <div className="dark min-h-screen bg-[#0a0b14] text-white">
@@ -224,25 +243,45 @@ function App() {
               <PrioritiesChat
                 components={extractedComponents}
                 bomEstimate={bomEstimate}
-                onComplete={(priorities) => {
-                  // Store priorities and updated components for later use
-                  setExtractedComponents(priorities.components);
-                  console.log('Priorities set:', priorities);
+                onComplete={(prioritiesData) => {
+                  // Store priorities, components, and spending limit for later use
+                  setExtractedComponents(prioritiesData.components);
+                  setPriorities({
+                    quality: prioritiesData.quality,
+                    speed: prioritiesData.speed,
+                    cost: prioritiesData.cost,
+                  });
+                  setSpendingLimit(prioritiesData.spendingLimit);
                   setCurrentScreen('sourcing');
                 }}
               />
             )}
             {currentScreen === 'sourcing' && (
-              <SourcingPipeline onContinue={() => setCurrentScreen('rfq')} />
+              <SourcingPipeline
+                components={extractedComponents}
+                spendingLimit={spendingLimit}
+                priorities={priorities || { quality: false, speed: false, cost: false }}
+                onContinue={(vendors, data) => {
+                  setSelectedVendors(vendors);
+                  setSourcingData(data);
+                  setCurrentScreen('rfq');
+                }}
+              />
             )}
             {currentScreen === 'rfq' && (
-              <RFQSpecGeneration onContinue={handlePlanGenerated} />
+              <RFQSpecGeneration
+                components={extractedComponents}
+                selectedVendors={selectedVendors}
+                sourcingData={sourcingData}
+                onContinue={handlePlanGenerated}
+              />
             )}
             {currentScreen === 'procurement' && (
               <ProcurementPlan
                 plan={procurementPlan}
                 setPlan={setProcurementPlan}
                 onApprove={handleApprove}
+                sourcingData={sourcingData}
               />
             )}
             {currentScreen === 'approval' && (

@@ -5,6 +5,7 @@ import { Checkbox } from './ui/checkbox';
 import { AgentTimeline } from './AgentTimeline';
 import { MultiVendorSplitCart } from './MultiVendorSplitCart';
 import type { ProcurementItem } from '../App';
+import { executePayment } from '../lib/api';
 
 interface ApprovalExecutionProps {
   plan: ProcurementItem[];
@@ -27,6 +28,9 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
   const vendors = Array.from(new Set(plan.map(item => item.vendor)));
   const allConfirmed = Object.values(confirmations).every(v => v);
 
+  // For testing: $0.01 per vendor
+  const testPaymentAmount = vendors.length * 0.01;
+
   const executionSteps = [
     'Fetch Policy Group',
     'Validate Vendors Against Whitelist',
@@ -39,21 +43,56 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
   const handleExecute = async () => {
     setIsExecuting(true);
     setStatus('processing');
+    setExecutionStep(0);
 
-    // Simulate step-by-step execution
-    for (let i = 0; i < executionSteps.length; i++) {
-      setExecutionStep(i);
-      await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Step 1: Fetch Policy Group
+      setExecutionStep(0);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 2: Validate Vendors
+      setExecutionStep(1);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: Generate Session Key
+      setExecutionStep(2);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 4: Execute USDC Transfers
+      setExecutionStep(3);
+      const result = await executePayment({ plan });
+
+      if (!result.success) {
+        throw new Error(result.errors?.join(', ') || 'Payment execution failed');
+      }
+
+      if (!result.transactionHashes || result.transactionHashes.length === 0) {
+        throw new Error('No transaction hashes returned');
+      }
+
+      // Step 5: Receive Transaction Hash
+      setExecutionStep(4);
+      const txHash = result.transactionHashes[0];
+      setTransactionHash(txHash);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 6: Log to CRM
+      setExecutionStep(5);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      setStatus('success');
+      setIsExecuting(false);
+
+      setTimeout(() => {
+        onExecute(txHash);
+      }, 2000);
+    } catch (error) {
+      console.error('Payment execution error:', error);
+      setStatus('failed');
+      setIsExecuting(false);
+      // You might want to show an error message to the user here
+      alert(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    const mockHash = `0x${Math.random().toString(16).substring(2, 10)}...${Math.random().toString(16).substring(2, 6)}`;
-    setTransactionHash(mockHash);
-    setStatus('success');
-    setIsExecuting(false);
-
-    setTimeout(() => {
-      onExecute(mockHash);
-    }, 2000);
   };
 
   return (
@@ -61,7 +100,7 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-green-500/8 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-blue-500/8 rounded-full blur-[120px] pointer-events-none" />
-      
+
       <div className="relative z-10 glass-card-blue border-b border-white/5 px-8 py-6">
         <div className="flex items-center gap-4">
           <Button
@@ -82,16 +121,17 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
         {status === 'idle' && (
           <>
             {/* Payment Summary */}
-            <div className="glass-card-blue rounded-2xl p-8 mb-8 shadow-2xl">
+            <div className="glass-card-blue rounded-2xl p-8 mb-8 shadow-2xl animate-fade-in-up">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h3 className="text-2xl text-white mb-2">Payment Summary</h3>
                   <p className="text-gray-400">Final confirmation before execution</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-400">Total Amount</p>
-                  <p className="text-3xl bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent mt-1">${totalAmount.toFixed(2)}</p>
-                  <p className="text-sm text-gray-400 mt-1">USDC</p>
+                  <p className="text-sm text-gray-400">Test Payment Amount</p>
+                  <p className="text-3xl bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent mt-1">${testPaymentAmount.toFixed(2)}</p>
+                  <p className="text-sm text-gray-400 mt-1">USDC (${vendors.length} vendors × $0.01)</p>
+                  <p className="text-xs text-yellow-400 mt-2">⚠️ Test mode: Sending to test wallet</p>
                 </div>
               </div>
 
@@ -111,7 +151,7 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-2 gap-6 mb-8 animate-stagger">
               {/* Locus Policy Group Panel */}
               <div className="glass-card rounded-xl p-6 shadow-lg">
                 <div className="flex items-center gap-3 mb-5">
@@ -189,10 +229,15 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
                   <div>
                     <p className="text-xs text-gray-500 mb-2">Wallet Address</p>
                     <div className="flex items-center gap-2">
-                      <p className="font-mono text-sm text-white/80">0x742d35B8...2089cf</p>
-                      <button className="text-blue-400 hover:text-blue-300">
+                      <p className="font-mono text-sm text-white/80">0xef22717e...c2988</p>
+                      <a
+                        href={`https://sepolia.basescan.org/address/0xef22717ea7c9e3b37b317723db6f02b0e52c2988`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300"
+                      >
                         <ExternalLink className="w-3 h-3" />
-                      </button>
+                      </a>
                     </div>
                   </div>
 
@@ -203,11 +248,11 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-400">This Transaction</span>
-                      <span className="text-sm text-orange-400">-${totalAmount.toFixed(2)}</span>
+                      <span className="text-sm text-orange-400">-${testPaymentAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center pt-3 border-t border-white/10">
                       <span className="text-sm text-gray-400">Remaining</span>
-                      <span className="text-lg text-green-400">${(12450 - totalAmount).toFixed(2)}</span>
+                      <span className="text-lg text-green-400">${(12450 - testPaymentAmount).toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -222,15 +267,23 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full border-white/10 hover:bg-white/5 text-white text-sm">
-                    Top Up Wallet
-                  </Button>
+                  <a
+                    href="https://app.paywithlocus.com/dashboard/transactions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <Button variant="outline" className="w-full border-white/10 hover:bg-white/5 text-white text-sm">
+                      <ExternalLink className="w-3 h-3 mr-2" />
+                      View Transactions
+                    </Button>
+                  </a>
                 </div>
               </div>
             </div>
 
             {/* Risk Summary Box */}
-            <div className="glass-card rounded-xl p-6 mb-8 shadow-lg">
+            <div className="glass-card rounded-xl p-6 mb-8 shadow-lg animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
               <h3 className="text-lg text-white mb-4 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-blue-400" />
                 Risk Summary
@@ -260,19 +313,19 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
                     <span className="text-sm text-purple-400">Wallet Balance</span>
                   </div>
                   <p className="text-2xl text-white">Sufficient</p>
-                  <p className="text-xs text-gray-400 mt-1">${(12450 - totalAmount).toFixed(2)} remaining</p>
+                  <p className="text-xs text-gray-400 mt-1">${(12450 - testPaymentAmount).toFixed(2)} remaining</p>
                 </div>
               </div>
             </div>
 
             {/* Payment Breakdown */}
-            <div className="glass-card rounded-xl p-6 mb-8 shadow-lg">
+            <div className="glass-card rounded-xl p-6 mb-8 shadow-lg animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
               <h3 className="text-lg text-white mb-4">Payment Breakdown by Vendor</h3>
-              <div className="space-y-3">
+              <div className="space-y-3 animate-stagger">
                 {vendors.map((vendor) => {
                   const vendorItems = plan.filter(item => item.vendor === vendor);
                   const vendorTotal = vendorItems.reduce((sum, item) => sum + item.totalCost, 0);
-                  
+
                   return (
                     <div key={vendor} className="bg-white/3 border border-white/10 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-3">
@@ -334,7 +387,7 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
                   <label htmlFor="authorizePayment" className="cursor-pointer flex-1">
                     <p className="text-white">I authorize Alloy to execute these payments via Locus Network</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      Payment of ${totalAmount.toFixed(2)} USDC will be executed to {vendors.length} vendor{vendors.length > 1 ? 's' : ''}
+                      Test payment of ${testPaymentAmount.toFixed(2)} USDC will be sent to test wallet (0x8527a8f9...258)
                     </p>
                   </label>
                 </div>
@@ -379,14 +432,14 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
         )}
 
         {status === 'processing' && (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-500/10 rounded-full mb-6">
+          <div className="text-center py-16 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-500/10 rounded-full mb-6 animate-scale-in">
               <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
             </div>
-            <h3 className="text-2xl text-white mb-6">Executing Payment Workflow</h3>
-            
+            <h3 className="text-2xl text-white mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>Executing Payment Workflow</h3>
+
             {/* Execution Stepper */}
-            <div className="glass-card rounded-xl p-8 max-w-2xl mx-auto">
+            <div className="glass-card rounded-xl p-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
               <div className="space-y-4">
                 {executionSteps.map((step, index) => (
                   <div key={index} className="flex items-center gap-4">
@@ -416,24 +469,63 @@ export function ApprovalExecution({ plan, onExecute, onBack }: ApprovalExecution
         )}
 
         {status === 'success' && (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500/10 rounded-full mb-6">
+          <div className="text-center py-16 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500/10 rounded-full mb-6 animate-scale-in">
               <CheckCircle className="w-10 h-10 text-green-400" />
             </div>
-            <h3 className="text-2xl text-white mb-2">Payment Executed Successfully!</h3>
-            <p className="text-gray-400 mb-8">Your procurement order has been submitted to all vendors</p>
-            
-            <div className="glass-card rounded-xl p-6 inline-block shadow-lg mb-8">
+            <h3 className="text-2xl text-white mb-2 animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>Payment Executed Successfully!</h3>
+            <p className="text-gray-400 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>Your procurement order has been submitted to all vendors</p>
+
+            <div className="glass-card rounded-xl p-6 inline-block shadow-lg mb-6 max-w-md animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
               <p className="text-sm text-gray-400 mb-2">Transaction Hash</p>
-              <div className="flex items-center gap-2">
-                <p className="font-mono text-blue-400">{transactionHash}</p>
-                <button className="text-blue-400 hover:text-blue-300">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <p className="font-mono text-blue-400 text-sm break-all">{transactionHash}</p>
+                <a
+                  href={`https://sepolia.basescan.org/tx/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 flex-shrink-0"
+                  title="View on BaseScan"
+                >
                   <ExternalLink className="w-4 h-4" />
-                </button>
+                </a>
+              </div>
+              <div className="pt-4 border-t border-white/10">
+                <a
+                  href="https://app.paywithlocus.com/dashboard/transactions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <Wallet className="w-4 h-4" />
+                  View in Locus Dashboard
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             </div>
 
             <p className="text-sm text-gray-400">Redirecting to dashboard...</p>
+          </div>
+        )}
+
+        {status === 'failed' && (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 rounded-full mb-6">
+              <AlertTriangle className="w-10 h-10 text-red-400" />
+            </div>
+            <h3 className="text-2xl text-white mb-2">Payment Execution Failed</h3>
+            <p className="text-gray-400 mb-8">There was an error executing the payment. Please try again.</p>
+
+            <Button
+              onClick={() => {
+                setStatus('idle');
+                setTransactionHash('');
+                setExecutionStep(0);
+              }}
+              className="gradient-button"
+            >
+              Try Again
+            </Button>
           </div>
         )}
       </div>

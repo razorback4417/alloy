@@ -1,3 +1,15 @@
+/**
+ * Locus MCP Test File
+ *
+ * This is a standalone test script for testing Locus MCP integration.
+ * It is NOT used by the main application.
+ *
+ * To run: npm start
+ *
+ * The main application uses Anthropic SDK directly for vendor sourcing.
+ * Locus integration for payment execution will be implemented in the future.
+ */
+
 import 'dotenv/config';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 

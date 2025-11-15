@@ -39,12 +39,12 @@ export function Sidebar({ currentScreen, onNavigate }: SidebarProps) {
         <div className="mb-4">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Navigation</p>
         </div>
-        
-        <div className="space-y-1">
-          {navItems.map((item) => {
+
+        <div className="space-y-1 animate-stagger">
+          {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = item.id === currentScreen;
-            
+
             return (
               <button
                 key={item.id}
@@ -54,8 +54,9 @@ export function Sidebar({ currentScreen, onNavigate }: SidebarProps) {
                     ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 shadow-lg shadow-blue-500/10'
                     : 'hover:bg-white/5 border border-transparent'
                 }`}
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
                 <span className={`text-sm ${isActive ? 'text-white' : 'text-gray-300'}`}>
                   {item.label}
                 </span>

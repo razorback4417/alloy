@@ -194,45 +194,300 @@ html {
     @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
   }
-  
+
   .glass-card-blue {
     @apply bg-white/5 backdrop-blur-xl border border-blue-500/10 shadow-2xl relative overflow-hidden;
     background: linear-gradient(135deg, rgba(91, 155, 255, 0.03) 0%, rgba(91, 155, 255, 0.01) 100%);
   }
-  
+
   .glass-card-orange {
     @apply bg-white/5 backdrop-blur-xl border border-orange-500/10 shadow-2xl relative overflow-hidden;
     background: linear-gradient(135deg, rgba(255, 107, 74, 0.03) 0%, rgba(255, 107, 74, 0.01) 100%);
   }
-  
+
   .glass-input {
     @apply bg-white/5 backdrop-blur-xl border border-white/10 text-white placeholder:text-gray-500;
     @apply focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
   }
-  
+
   .gradient-button {
     @apply relative overflow-hidden border-0 text-white transition-all duration-300;
-    background: linear-gradient(135deg, #ff6b4a 0%, #ff4a8a 100%);
-    box-shadow: 0 8px 24px rgba(255, 107, 74, 0.4);
+    background: linear-gradient(135deg, #e85a3d 0%, #e03a7a 100%);
+    box-shadow: 0 4px 16px rgba(232, 90, 61, 0.3);
   }
-  
+
   .gradient-button:hover:not(:disabled) {
-    box-shadow: 0 12px 32px rgba(255, 107, 74, 0.6);
-    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 90, 61, 0.4);
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #f06b4f 0%, #f04a8a 100%);
   }
-  
+
   .gradient-button:disabled {
     @apply opacity-50 cursor-not-allowed;
   }
-  
+
+  /* Ensure ::before pseudo-element stays behind content */
   .gradient-button::before {
-    content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity;
-    background: linear-gradient(135deg, #ff4a8a 0%, #ff6b4a 100%);
+    z-index: 0;
   }
-  
-  .gradient-button:hover:not(:disabled)::before {
-    @apply opacity-100;
+
+  .gradient-button > * {
+    @apply relative;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Ensure text and icons in gradient-button stay visible */
+  .gradient-button,
+  .gradient-button * {
+    color: inherit;
+    opacity: 1;
+  }
+
+  /* 3D Card Animation */
+  @keyframes cardEnter {
+    0% {
+      transform: perspective(1000px) rotateY(15deg) rotateX(5deg) scale(0.95);
+      opacity: 0;
+    }
+    100% {
+      transform: perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .card-enter-animation {
+    animation: cardEnter 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    transform-style: preserve-3d;
+  }
+
+  /* Fade in animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  /* Animation utility classes */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.5s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  /* Stagger animations for children */
+  .animate-stagger > * {
+    opacity: 0;
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  .animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .animate-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+  .animate-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+  .animate-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+  .animate-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+  .animate-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+  .animate-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+  .animate-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+  .animate-stagger > *:nth-child(n+9) { animation-delay: 0.45s; }
+
+  /* Smooth hover transitions */
+  .glass-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* Button hover effects */
+  button:not(.gradient-button):not(:disabled) {
+    transition: all 0.2s ease;
+  }
+
+  button:not(.gradient-button):not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  button:not(.gradient-button):not(:disabled):active {
+    transform: translateY(0);
+  }
+
+  /* Input focus animations */
+  input, textarea, select {
+    transition: all 0.2s ease;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    transform: scale(1.01);
+  }
+
+  /* Table row hover */
+  tbody tr {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  tbody tr:hover {
+    transform: translateX(2px);
+  }
+
+  /* Icon animations */
+  svg {
+    transition: transform 0.2s ease;
+  }
+
+  button:not(.gradient-button):hover svg, a:hover svg {
+    transform: scale(1.1);
+  }
+
+  /* Keep gradient-button icons stable */
+  .gradient-button svg {
+    transform: none;
+  }
+
+  .gradient-button:hover svg {
+    transform: none;
+  }
+
+  /* Badge/status animations */
+  [class*="badge"], [class*="status"] {
+    transition: all 0.2s ease;
+  }
+
+  /* Progress bar animations */
+  [class*="progress"] {
+    transition: width 0.5s ease;
+  }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Page transition animations */
+  @keyframes pageEnter {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Apply to main content areas */
+  main > div {
+    animation: pageEnter 0.4s ease-out;
+  }
+
+  /* Subtle pulse for active states */
+  @keyframes subtlePulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .animate-subtle-pulse {
+    animation: subtlePulse 2s ease-in-out infinite;
+  }
+
+  /* Number count-up animation */
+  @keyframes countUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Smooth transitions for all interactive elements */
+  a, button, input, select, textarea {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Card hover lift effect */
+  .glass-card:hover {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  /* Icon rotation on hover */
+  button:hover svg[class*="rotate"] {
+    transform: rotate(5deg) scale(1.1);
   }
 }
