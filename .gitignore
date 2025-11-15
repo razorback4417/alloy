@@ -1,0 +1,7 @@
+.env
+node_modules/
+**/node_modules/
+CONTEXT.md
+FIGMA.md
+PROJECT_SUMMARY.md
+cnc-router-materials.md
