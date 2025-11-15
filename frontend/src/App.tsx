@@ -45,9 +45,44 @@ export interface Order {
   }[];
 }
 
+export interface ExtractedComponent {
+  name: string;
+  quantity: string;
+  specifications: string;
+}
+
+export interface BOMEstimate {
+  totalLineItems: number;
+  estimatedCostRange: {
+    min: number;
+    max: number;
+  };
+  leadTimeRange: {
+    min: number;
+    max: number;
+  };
+  confidence: number;
+  confidenceLabel: string;
+  itemBreakdown: Array<{
+    componentName: string;
+    quantity: string;
+    estimatedCostRange: {
+      min: number;
+      max: number;
+    };
+    estimatedLeadTimeDays: {
+      min: number;
+      max: number;
+    };
+    reasoning: string;
+  }>;
+}
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const [procurementPlan, setProcurementPlan] = useState<ProcurementItem[]>([]);
+  const [extractedComponents, setExtractedComponents] = useState<ExtractedComponent[]>([]);
+  const [bomEstimate, setBomEstimate] = useState<BOMEstimate | null>(null);
   const [orders, setOrders] = useState<Order[]>([
     {
       id: 'ORD-001',
@@ -170,17 +205,32 @@ function App() {
         <LandingPage onGetStarted={() => setCurrentScreen('upload')} />
       ) : (
         <div className="flex min-h-screen">
-          <Sidebar 
-            currentScreen={currentScreen} 
+          <Sidebar
+            currentScreen={currentScreen}
             onNavigate={setCurrentScreen}
           />
-          
+
           <main className="flex-1 overflow-auto">
             {currentScreen === 'upload' && (
-              <EngineeringAssetUpload onUploadComplete={() => setCurrentScreen('priorities')} />
+              <EngineeringAssetUpload
+                onUploadComplete={(components, bomEstimate) => {
+                  setExtractedComponents(components);
+                  setBomEstimate(bomEstimate);
+                  setCurrentScreen('priorities');
+                }}
+              />
             )}
             {currentScreen === 'priorities' && (
-              <PrioritiesChat onComplete={() => setCurrentScreen('sourcing')} />
+              <PrioritiesChat
+                components={extractedComponents}
+                bomEstimate={bomEstimate}
+                onComplete={(priorities) => {
+                  // Store priorities and updated components for later use
+                  setExtractedComponents(priorities.components);
+                  console.log('Priorities set:', priorities);
+                  setCurrentScreen('sourcing');
+                }}
+              />
             )}
             {currentScreen === 'sourcing' && (
               <SourcingPipeline onContinue={() => setCurrentScreen('rfq')} />
@@ -189,14 +239,14 @@ function App() {
               <RFQSpecGeneration onContinue={handlePlanGenerated} />
             )}
             {currentScreen === 'procurement' && (
-              <ProcurementPlan 
+              <ProcurementPlan
                 plan={procurementPlan}
                 setPlan={setProcurementPlan}
                 onApprove={handleApprove}
               />
             )}
             {currentScreen === 'approval' && (
-              <ApprovalExecution 
+              <ApprovalExecution
                 plan={procurementPlan}
                 onExecute={handleExecutePayment}
                 onBack={() => setCurrentScreen('procurement')}
