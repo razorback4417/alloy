@@ -1,135 +1,80 @@
-# alloy
+# Alloy - Autonomous Procurement Copilot
 
-A Locus-powered application using Anthropic Claude Agent SDK with MCP integration.
+An AI-powered procurement system that extracts components from engineering files, sources vendors, and executes payments via Locus.
 
-## About
+## Technical Flow
 
-This project was created using `create-locus-app` and is configured to use:
-- **Claude Agent SDK** for AI interactions with tool support
-- **Locus MCP server** integration with API key authentication
-- **Full tool calling** capabilities
+1. **File Upload** → User uploads engineering design file (PDF, CAD, etc.)
+2. **File Processing** → Anthropic SDK extracts components, materials, and specs (enhanced mode extracts certifications, environmental constraints, tolerances)
+3. **BOM Estimation** → Anthropic SDK estimates costs and lead times for each component
+4. **Vendor Sourcing** → Anthropic SDK finds vendors (Firecrawl mode scrapes real vendor websites for contact info)
+5. **Procurement Plan** → System generates structured purchasing plan with vendor recommendations
+6. **User Approval** → Human reviews and approves the plan
+7. **Payment Execution** → Locus MCP tools execute USDC payments to vendor wallet addresses
+8. **CRM Logging** → Order details and transaction hashes logged to CRM dashboard
 
-## Getting Started
+## Key Integrations
 
-Your application is already configured and ready to run!
+- **Anthropic SDK**: Component extraction, vendor sourcing, BOM estimation
+- **Locus MCP**: Payment execution via `send_to_address` and `get_payment_context`
+- **Firecrawl** (optional): Real vendor website scraping for contact information
+
+## Quick Start
 
 ```bash
-# Run the application
-npm start
+# Install dependencies
+npm install
 
-# or with auto-restart on file changes
-npm run dev
+# Set up environment variables
+cp .env.example .env
+# Add your API keys: ANTHROPIC_API_KEY, LOCUS_API_KEY
+
+# Run development server
+npm run dev:server
+
+# Run frontend (in separate terminal)
+npm run dev:frontend
 ```
+
+## Feature Flags
+
+Enable enhanced features via environment variables. See `FEATURE_FLAGS.md` for details.
+
+- `ENHANCED_FILE_PROCESSING=true` - Comprehensive engineering data extraction
+- `USE_FIRECRAWL=true` - Real vendor website scraping
+- `USE_STRUCTURED_OUTPUTS=true` - Structured JSON schemas
+- `USE_RETRY_LOGIC=true` - Automatic retry on failures
+- `USE_ENHANCED_ERROR_HANDLING=true` - Better error messages
 
 ## Project Structure
 
-- `index.ts` - Main application file with MCP and Claude Agent SDK setup
-- `.env` - Environment variables (credentials are already configured)
-- `.env.example` - Example environment variables for reference
-- `package.json` - Project dependencies and scripts
-- `tsconfig.json` - TypeScript configuration
-
-## How It Works
-
-1. **MCP Connection**: Connects to Locus MCP server with API key authentication
-2. **Tool Discovery**: Automatically discovers and loads tools from Locus
-3. **Agent Query**: Uses Claude Agent SDK to process queries with tool access
-4. **Tool Execution**: Claude can call Locus tools to complete tasks
-
-## Features
-
-✅ **Fully Integrated:**
-- Locus MCP server connection
-- All Locus tools available to Claude
-- API key authentication (secure, no OAuth needed)
-- Automatic tool discovery
-- Streaming agent responses
-
-## Customization
-
-### Modify the Prompt
-
-Edit the query prompt in `index.ts`:
-
-```javascript
-for await (const message of query({
-  prompt: 'Your custom prompt here - can ask Claude to use Locus tools!',
-  options
-})) {
-  // handle messages
-}
 ```
+server/
+  services/
+    fileProcessor.ts              # File processing (routes to enhanced if enabled)
+    vendorSourcing.ts             # Vendor sourcing (routes to Firecrawl/enhanced if enabled)
+    bomEstimator.ts               # BOM estimation
+    paymentExecutor.ts            # Locus payment execution
+  utils/
+    retry.ts                      # Retry logic utility
+    errorHandler.ts               # Enhanced error handling
 
-### Add More MCP Servers
-
-You can connect to multiple MCP servers:
-
-```javascript
-const mcpServers = {
-  'locus': {
-    type: 'http',
-    url: 'https://mcp.paywithlocus.com/mcp',
-    headers: { 'Authorization': `Bearer ${process.env.LOCUS_API_KEY}` }
-  },
-  'another-server': {
-    type: 'sse',
-    url: 'https://example.com/mcp',
-    headers: { 'X-API-Key': process.env.OTHER_API_KEY }
-  }
-};
-```
-
-### Restrict Tools
-
-Limit which tools Claude can use with `allowedTools`:
-
-```javascript
-const options = {
-  mcpServers,
-  allowedTools: [
-    'mcp__locus__specific_tool',  // only allow specific tool
-    'mcp__list_resources'
-  ],
-  apiKey: process.env.ANTHROPIC_API_KEY
-};
-```
-
-### Handle Different Message Types
-
-Process various message types from the agent:
-
-```javascript
-for await (const message of query({ prompt, options })) {
-  if (message.type === 'system' && message.subtype === 'init') {
-    console.log('MCP servers:', message.mcp_servers);
-  } else if (message.type === 'result' && message.subtype === 'success') {
-    console.log('Final result:', message.result);
-  } else if (message.type === 'error_during_execution') {
-    console.error('Error:', message.error);
-  }
-}
+frontend/
+  src/
+    components/                   # React components
+    lib/
+      api.ts                      # API client
 ```
 
 ## Environment Variables
 
-Your `.env` file contains:
-- `LOCUS_API_KEY` - Your Locus API key for MCP server authentication
-- `ANTHROPIC_API_KEY` - Your Anthropic API key for Claude
-
-**Important**: Never commit your `.env` file to version control!
-
-## Learn More
-
-- [Locus Documentation](https://docs.paywithlocus.com)
-- [Claude SDK Documentation](https://docs.anthropic.com)
-- [Claude API Reference](https://docs.anthropic.com/en/api)
-
-## Support
-
-For issues or questions:
-- Check the [Locus documentation](https://docs.paywithlocus.com)
-- Contact Locus support
-
----
-
-Built with Locus 🎯
+```env
+ANTHROPIC_API_KEY=sk-...
+LOCUS_API_KEY=locus_...
+FIRECRAWL_API_KEY=fc-...          # Optional, for vendor scraping
+ENHANCED_FILE_PROCESSING=false    # Feature flags
+USE_FIRECRAWL=false
+USE_STRUCTURED_OUTPUTS=false
+USE_RETRY_LOGIC=false
+USE_ENHANCED_ERROR_HANDLING=false
+```
