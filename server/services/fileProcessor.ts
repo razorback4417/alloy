@@ -2,6 +2,7 @@ import 'dotenv/config';
 import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { processDesignFileEnhanced, convertToBasicFormat } from './fileProcessorEnhanced.js';
 
 export interface FileProcessingResult {
   pages: number;
@@ -16,11 +17,28 @@ export interface FileProcessingResult {
   }>;
 }
 
+/**
+ * Process design file - uses enhanced processing if enabled, otherwise basic processing
+ *
+ * Set ENHANCED_FILE_PROCESSING=true in .env to use comprehensive extraction
+ * Enhanced mode extracts: materials, electrical/thermal/mechanical specs,
+ * certifications (UL/IEC), environmental constraints, quantities & tolerances
+ */
 export async function processDesignFile(
   fileContent: string,
   fileName: string,
   fileSize: number
 ): Promise<FileProcessingResult> {
+  // Check if enhanced processing is enabled
+  const useEnhanced = process.env.ENHANCED_FILE_PROCESSING === 'true';
+
+  if (useEnhanced) {
+    console.log('Using enhanced file processing with comprehensive extraction');
+    const enhanced = await processDesignFileEnhanced(fileContent, fileName, fileSize);
+    return convertToBasicFormat(enhanced);
+  }
+
+  // Basic processing (original implementation)
   try {
     // Validate API key is present
     const apiKey = process.env.ANTHROPIC_API_KEY;

@@ -43,6 +43,8 @@ app.post('/api/upload-design', upload.single('file'), async (req, res) => {
     console.log(`Processing file: ${fileName} (${fileSize} bytes)`);
 
     // Process the file to extract information
+    // Uses enhanced processing if ENHANCED_FILE_PROCESSING=true
+    // Enhanced mode extracts: materials, specs, certifications, environmental constraints, tolerances
     const fileInfo = await processDesignFile(fileContent, fileName, fileSize);
 
     // Generate BOM estimate

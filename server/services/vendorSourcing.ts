@@ -87,6 +87,7 @@ export async function sourceVendors(
     console.log(`[${i + 1}/${request.components.length}] Searching vendors for: ${component.name}`);
 
     try {
+      // searchVendorsForComponent will route to enhanced version if USE_STRUCTURED_OUTPUTS=true
       const searchResult = await searchVendorsForComponent(
         anthropic,
         component,
@@ -126,6 +127,15 @@ async function searchVendorsForComponent(
   priorities: { quality: boolean; speed: boolean; cost: boolean },
   context: string
 ): Promise<ComponentVendorSearch> {
+  // Check if enhanced processing with structured outputs is enabled
+  const useStructuredOutputs = process.env.USE_STRUCTURED_OUTPUTS === 'true';
+
+  if (useStructuredOutputs) {
+    const { searchVendorsForComponentEnhanced } = await import('./vendorSourcingEnhanced.js');
+    return searchVendorsForComponentEnhanced(anthropic, component, spendingLimit, priorities, context);
+  }
+
+  // Original implementation (basic mode)
   const systemPrompt = `You are a vendor sourcing agent for an autonomous procurement system.
 
 ${context ? `Context:\n${context}\n\n` : ''}

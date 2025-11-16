@@ -34,6 +34,15 @@ export interface BOMEstimate {
 export async function generateBOMEstimate(
   fileInfo: FileProcessingResult
 ): Promise<BOMEstimate> {
+  // Check if enhanced processing with structured outputs is enabled
+  const useStructuredOutputs = process.env.USE_STRUCTURED_OUTPUTS === 'true';
+
+  if (useStructuredOutputs) {
+    const { generateBOMEstimateEnhanced } = await import('./bomEstimatorEnhanced.js');
+    return generateBOMEstimateEnhanced(fileInfo);
+  }
+
+  // Original implementation (basic mode)
   try {
     // Validate API key is present
     const apiKey = process.env.ANTHROPIC_API_KEY;
