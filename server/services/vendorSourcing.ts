@@ -127,6 +127,15 @@ async function searchVendorsForComponent(
   priorities: { quality: boolean; speed: boolean; cost: boolean },
   context: string
 ): Promise<ComponentVendorSearch> {
+  // Check if Firecrawl integration is enabled (highest priority)
+  const useFirecrawl = process.env.USE_FIRECRAWL === 'true';
+
+  if (useFirecrawl) {
+    console.log(`[Vendor Sourcing] Using Firecrawl integration for: ${component.name}`);
+    const { searchVendorsForComponentWithFirecrawl } = await import('./vendorSourcingWithFirecrawl.js');
+    return searchVendorsForComponentWithFirecrawl(anthropic, component, spendingLimit, priorities, context);
+  }
+
   // Check if enhanced processing with structured outputs is enabled
   const useStructuredOutputs = process.env.USE_STRUCTURED_OUTPUTS === 'true';
 
